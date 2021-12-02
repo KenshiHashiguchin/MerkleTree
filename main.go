@@ -2,11 +2,9 @@ package main
 
 import (
 	"bufio"
-	"log"
-
-	//"crypto/sha256"
+	"encoding/hex"
 	"fmt"
-	//"log"
+	"log"
 	"os"
 )
 
@@ -15,25 +13,50 @@ import (
 //	x string
 //}
 //
+type Transaction struct {
+	id string
+}
+
 ////CalculateHash hashes the values of a TestContent
-//func (t TestContent) CalculateHash() ([]byte, error) {
-//	h := sha256.New()
-//	if _, err := h.Write([]byte(t.x)); err != nil {
-//		return nil, err
-//	}
-//
-//	return h.Sum(nil), nil
-//}
-//
-////Equals tests for equality of two Contents
-//func (t TestContent) Equals(other merkletree.Content) (bool, error) {
-//	return t.x == other.(TestContent).x, nil
-//}
+func (t Transaction) CalculateHash() ([]byte, error) {
+	//h := sha256.New()
+	//if _, err := h.Write([]byte(t.id)); err != nil {
+	//	return nil, err
+	//}
+
+	//return h.Sum(nil), nil
+
+	return []byte(t.id), nil
+	//hex, _ := hex.DecodeString(t.id)
+	//var i int64
+	//// エンディアンの変換
+	//binary.Read(bytes.NewReader(hex), binary.BigEndian, &i)
+	//result := make([]byte, binary.MaxVarintLen32)
+	//binary.PutVarint(result, i)
+	//return result, nil
+}
+
+//Equals tests for equality of two Contents
+func (t Transaction) Equals(other Content) (bool, error) {
+	return t.id == other.(Transaction).id, nil
+}
+
+func parseBE(string2 string) string {
+	result := ""
+
+	for i := 0; i < 32; i++ {
+		result = string2[i*2:i*2+2] + result
+		//fmt.Println(string2)
+		//fmt.Println(result)
+	}
+
+	return result
+}
 
 func main() {
-	var txId []string
+	var txId []Content
 	fmt.Println("トランザクションIDを入力してください")
-	fmt.Println("Yを入力するとその時点でのマークルツリーを作成します。")
+	fmt.Println("Yを入力すると入力されたトランザクションIDからマークルツリーを作成します。")
 	scanner := bufio.NewScanner(os.Stdin)
 	for {
 		scanner.Scan()
@@ -46,42 +69,18 @@ func main() {
 			fmt.Println("不正な入力です。入力し直してください。")
 		}
 
-		txId = append(txId, in)
+		be := parseBE(in)
+		//fmt.Println(be)
+		txId = append(txId, Transaction{id: be})
 	}
 
-	////Build list of Content to build tree
-	//var list []merkletree.Content
-	//list = append(list, TestContent{x: "Hello"})
-	//list = append(list, TestContent{x: "Hi"})
-	//list = append(list, TestContent{x: "Hey"})
-	//list = append(list, TestContent{x: "Hola"})
-	//
-	////Create a new Merkle Tree from the list of Content
-	t, err := merkletree.NewTree(txId)
+	t, err := NewTree(txId)
 	if err != nil {
 		log.Fatal(err)
 	}
-	//
-	////Get the Merkle Root of the tree
-	//mr := t.MerkleRoot()
-	//log.Println(mr)
-	//
-	////Verify the entire tree (hashes for each node) is valid
-	//vt, err := t.VerifyTree()
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//log.Println("Verify Tree: ", vt)
-	//
-	////Verify a specific content in in the tree
-	//vc, err := t.VerifyContent(list[0])
-	//if err != nil {
-	//	log.Fatal(err)
-	//}
-	//
-	//log.Println("Verify Content: ", vc)
-	//
-	////String representation
-	//log.Println(t)
+	mr := t.MerkleRoot()
+	log.Println(mr)
+	log.Println(fmt.Sprintf("%s", mr))
+	log.Println(hex.EncodeToString(mr))
+
 }

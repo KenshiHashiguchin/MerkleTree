@@ -1,3 +1,6 @@
+// Copyright 2017 Cameron Bergoon
+// Licensed under the MIT License, see LICENCE file for details.
+
 package main
 
 import (
@@ -6,8 +9,11 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"log"
 )
 
+//Content represents the data that is stored and verified by the tree. A type that
+//implements this interface can be used as an item in the tree.
 type Content interface {
 	CalculateHash() ([]byte, error)
 	Equals(other Content) (bool, error)
@@ -65,12 +71,16 @@ func (n *Node) calculateNodeHash() ([]byte, error) {
 		return n.C.CalculateHash()
 	}
 
-	h := n.Tree.hashStrategy()
-	if _, err := h.Write(append(n.Left.Hash, n.Right.Hash...)); err != nil {
-		return nil, err
-	}
+	//h := n.Tree.hashStrategy()
+	log.Println("doublehash")
 
-	return h.Sum(nil), nil
+	h1 := sha256.Sum256(append(n.Left.Hash, n.Right.Hash...))
+	h2 := sha256.Sum256(h1[:])
+	//if _, err := h.Write(append(n.Left.Hash, n.Right.Hash...)); err != nil {
+	//	return nil, err
+	//}
+
+	return h2[:], nil
 }
 
 //NewTree creates a new Merkle Tree using the content cs.
@@ -179,20 +189,21 @@ func buildWithContent(cs []Content, t *MerkleTree) (*Node, []*Node, error) {
 func buildIntermediate(nl []*Node, t *MerkleTree) (*Node, error) {
 	var nodes []*Node
 	for i := 0; i < len(nl); i += 2 {
-		h := t.hashStrategy()
+		//h := t.hashStrategy()
 		var left, right int = i, i + 1
 		if i+1 == len(nl) {
 			right = i
 		}
 		chash := append(nl[left].Hash, nl[right].Hash...)
-		if _, err := h.Write(chash); err != nil {
-			return nil, err
-		}
+		h1 := sha256.Sum256(chash)
+		h2 := sha256.Sum256(h1[:])
+
 		n := &Node{
 			Left:  nl[left],
 			Right: nl[right],
-			Hash:  h.Sum(nil),
-			Tree:  t,
+			Hash:  h2[:],
+			//Hash:  h1[:],
+			Tree: t,
 		}
 		nodes = append(nodes, n)
 		nl[left].Parent = n
